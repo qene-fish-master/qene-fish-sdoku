@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#2f6fd6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="青魚數獨">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>青魚數獨</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#e9eff8;--cell:#fff;--fg:#17212e;--ac:#2a63c4;--ut:#2a63c4;--thin:#cbd5e4;--thick:#34445e;--sel:#9fc0f7;--pe:#e1eafa;--sa:#c3d8fa;--er:#fde0e0;--ert:#d22f2f;--card:#fff;--bs:max(240px,min(calc(100vw - 16px),calc(100vh - 330px),560px))}
+@supports(height:100dvh){:root{--bs:max(240px,min(calc(100vw - 16px),calc(100dvh - 330px),560px))}}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111111;--cell:#181818;--fg:#f4f4f4;--ac:#06c755;--ut:#3ddc84;--thin:#2c2c2c;--thick:#8a8a8a;--sel:#0b7a43;--pe:#2a2a2a;--sa:#164d33;--er:#4d1f22;--ert:#ff6b6b;--card:#262626}}
+:root[data-theme=dark]{--bg:#111111;--cell:#181818;--fg:#f4f4f4;--ac:#06c755;--ut:#3ddc84;--thin:#2c2c2c;--thick:#8a8a8a;--sel:#0b7a43;--pe:#2a2a2a;--sa:#164d33;--er:#4d1f22;--ert:#ff6b6b;--card:#262626}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:16px system-ui,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation;overscroll-behavior:none}
+#app{height:100%;display:flex;flex-direction:column;align-items:center;padding:env(safe-area-inset-top) 8px env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit;background:var(--card);border:0;border-radius:10px;padding:8px 12px;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+header{width:var(--bs);display:flex;align-items:center;gap:8px;padding:8px 0}
+#info{flex:1;display:flex;flex-direction:column;font-size:13px;line-height:1.35}
+#dif{font-weight:700}
+#tm{font-variant-numeric:tabular-nums;font-size:19px;font-weight:700}
+main{display:flex;flex-direction:column;align-items:center;gap:10px}
+#boardWrap{position:relative;width:var(--bs);height:var(--bs)}
+#board{display:grid;grid-template:repeat(9,1fr)/repeat(9,1fr);width:100%;height:100%;border:2px solid var(--thick);background:var(--cell);border-radius:6px;overflow:hidden}
+#board>div{display:flex;align-items:center;justify-content:center;border:.5px solid var(--thin);font-size:calc(var(--bs)/9*.58);color:var(--ut);cursor:pointer;background:var(--cell)}
+#board .gv{color:var(--fg);font-weight:700}
+#board .cr{border-right:2px solid var(--thick)}
+#board .rb{border-bottom:2px solid var(--thick)}
+#board .pe{background:var(--pe)}
+#board .sa{background:var(--sa)}
+#board .sel{background:var(--sel)}
+#board .er{background:var(--er);color:var(--ert)}
+.nt{display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);width:100%;height:100%;font-size:calc(var(--bs)/9*.24);color:var(--fg);opacity:.75}
+.nt i{font-style:normal;display:flex;align-items:center;justify-content:center}
+@keyframes pop{50%{transform:scale(1.18);background:var(--sel)}}
+#board .win{animation:pop .5s ease both;animation-delay:calc(var(--d)*35ms)}
+@media(prefers-reduced-motion:reduce){#board .win{animation:none}}
+#pauseO{position:absolute;inset:0;display:none;align-items:center;justify-content:center;text-align:center;line-height:1.6;background:var(--cell);border:2px solid var(--thick);border-radius:6px;font-size:22px;cursor:pointer}
+#pauseO.show{display:flex}
+#panel{display:flex;flex-direction:column;gap:10px;width:var(--bs)}
+#tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#tools button{padding:7px 0;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:1px}
+#tools b{font-size:20px;font-weight:400}
+#tools .on{background:var(--ac);color:#fff}
+#pad{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+#pad button{padding:6px 0;font-size:calc(var(--bs)/9*.55);color:var(--ac);display:flex;flex-direction:column;align-items:center;line-height:1.1}
+#pad small{font-size:11px;color:var(--fg);opacity:.55;min-height:13px}
+#pad button:disabled{opacity:.25;cursor:default}
+@media(orientation:landscape) and (max-height:560px){
+:root{--bs:max(200px,min(calc(100vh - 64px),52vw))}
+@supports(height:100dvh){:root{--bs:max(200px,min(calc(100dvh - 64px),52vw))}}
+header{width:100%;max-width:calc(var(--bs) + 330px)}
+main{flex-direction:row;align-items:center;gap:16px}
+#panel{width:min(300px,38vw)}
+#pad{grid-template-columns:repeat(3,1fr)}
+#pad button{font-size:22px;flex-direction:row;justify-content:center;gap:6px;padding:8px 0}
+}
+dialog{border:0;border-radius:16px;padding:20px;background:var(--card);color:var(--fg);width:min(88vw,340px)}
+dialog::backdrop{background:#000a}
+dialog h2{margin:0 0 6px;font-size:20px}
+dialog p{margin:6px 0;font-size:14px;line-height:1.5}
+dialog button{display:block;width:100%;margin:8px 0 0;background:var(--bg);padding:11px 12px;text-align:center}
+dialog button.p{background:var(--ac);color:#fff}
+dialog label{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+dialog input{font:inherit;padding:6px;border-radius:8px;border:1px solid var(--thin);background:var(--bg);color:var(--fg)}
+dialog table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}
+dialog td{padding:5px 0;border-bottom:1px solid var(--thin)}
+dialog td+td{text-align:right;font-variant-numeric:tabular-nums}
+dialog .hint{opacity:.65;font-size:12px}
+#home{position:fixed;inset:0;z-index:5;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg);padding:20px}
+#home.show{display:flex}
+#home img{width:96px;height:96px;border-radius:24px}
+#home h1{margin:4px 0 0;font-size:30px;letter-spacing:.08em}
+#home p{margin:0 0 10px;opacity:.65;font-size:14px}
+#home .hb{width:min(86vw,320px);padding:16px;font-size:17px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+#home .hb.p{background:var(--ac);color:#fff}
+#home small{font-weight:400;opacity:.8;font-size:13px}
+.row2{display:flex;gap:10px;width:min(86vw,320px)}.row2 button{flex:1;padding:14px}
+dialog button.r{display:flex;justify-content:space-between}
+dialog .r span{color:var(--ac);font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1b2433;color:#fff;padding:8px 14px;border-radius:20px;opacity:0;pointer-events:none;transition:opacity .2s;font-size:14px;z-index:99;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+<button id="bHome" aria-label="主頁">🏠</button>
+<div id="info"><span id="dif"></span><span id="mist"></span></div>
+<div id="tm">00:00</div>
+<button id="bPause" aria-label="暫停">⏸</button>
+<button id="bSet" aria-label="設定">⚙</button>
+</header>
+<main>
+<div id="boardWrap"><div id="board"></div><div id="pauseO">已暫停<br>點一下繼續</div></div>
+<div id="panel">
+<div id="tools">
+<button id="tU"><b>↶</b>復原</button>
+<button id="tE"><b>⌫</b>擦除</button>
+<button id="tN"><b>✎</b><span>筆記:關</span></button>
+<button id="tH"><b>💡</b>提示</button>
+</div>
+<div id="pad"></div>
+</div>
+</main>
+</div>
+<div id="home"></div>
+<dialog id="dlg"></dialog>
+<div id="toast"></div>
+<script>
+//CORE
+function pop(m){let k=0;while(m){m&=m-1;k++}return k}
+function shuffle(a,R){for(let i=a.length-1;i>0;i--){const j=R()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function dseed(d){let h=7;for(const ch of d)h=Math.imul(h,31)+ch.charCodeAt(0)|0;return h}
+function solve(g,limit,R){
+ const r=Array(9).fill(0),c=Array(9).fill(0),b=Array(9).fill(0),a=g.slice();
+ for(let i=0;i<81;i++)if(a[i]){const m=1<<a[i];r[i/9|0]|=m;c[i%9]|=m;b[(i/27|0)*3+(i%9/3|0)]|=m}
+ let n=0,first=null;
+ (function go(){
+  if(n>=limit)return;
+  let best=-1,bm=0,bc=10;
+  for(let i=0;i<81;i++)if(!a[i]){
+   const m=~(r[i/9|0]|c[i%9]|b[(i/27|0)*3+(i%9/3|0)])&0x3FE,k=pop(m);
+   if(k<bc){bc=k;best=i;bm=m;if(k<2)break}
+  }
+  if(best<0){n++;if(!first)first=a.slice();return}
+  if(bc===0)return;
+  const ro=best/9|0,co=best%9,bo=(ro/3|0)*3+(co/3|0),ds=[];
+  for(let d=1;d<=9;d++)if(bm>>d&1)ds.push(d);
+  if(R)shuffle(ds,R);
+  for(const d of ds){
+   const m=1<<d;a[best]=d;r[ro]|=m;c[co]|=m;b[bo]|=m;
+   go();
+   r[ro]&=~m;c[co]&=~m;b[bo]&=~m;a[best]=0;
+   if(n>=limit)return;
+  }
+ })();
+ return{n,first};
+}
+function okSol(s){
+ if(!Array.isArray(s)||s.length!==81)return false;
+ for(let u=0;u<9;u++){let a=0,b=0,c=0;
+  for(let k=0;k<9;k++){a|=1<<s[u*9+k];b|=1<<s[k*9+u];c|=1<<s[((u/3|0)*3+(k/3|0))*9+(u%3)*3+k%3]}
+  if(a!==0x3FE||b!==0x3FE||c!==0x3FE)return false}
+ return true;
+}
+const LV={easy:{n:'簡單',g:40},mid:{n:'中等',g:34},hard:{n:'困難',g:30},exp:{n:'專家',g:25}};
+function gen(diff,R){
+ const s=solve(Array(81).fill(0),1,R).first,p=s.slice(),t=LV[diff].g;let g=81;
+ for(const i of shuffle([...Array(81).keys()],R)){
+  if(g<=t)break;
+  const v=p[i];p[i]=0;
+  if(solve(p,2).n===1)g--;else p[i]=v;
+ }
+ return{p,s};
+}
+//ENDCORE
+
+const $=s=>document.querySelector(s);
+const LS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}};
+const SV=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>key(new Date());
+const fmt=t=>String(t/60|0).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+const DD=['mid','easy','mid','hard','mid','hard','exp']; // 週日~週六的每日挑戰難度
+let S=Object.assign({played:0,won:0,best:{},streak:0,lastDaily:'',days:{}},LS('qy.s',{}));
+let C=Object.assign({theme:'auto',rem:{}},LS('qy.c',{}));
+C.rem=Object.assign({on:false,min:1200,last:'',done:''},C.rem);
+C.set=Object.assign({err:true,hl:true,same:true,auto:true,vib:true,lim:3},C.set);
+const saveC=()=>SV('qy.c',C);
+let G=null,sel=-1,paused=false,noteMode=false,homeOn=true;
+const dlg=$('#dlg');
+
+const PE=[];
+for(let i=0;i<81;i++){const r=i/9|0,c=i%9,s=new Set();
+ for(let k=0;k<9;k++){s.add(r*9+k);s.add(k*9+c)}
+ for(let a=0;a<3;a++)for(let b=0;b<3;b++)s.add((r-r%3+a)*9+c-c%3+b);
+ s.delete(i);PE.push([...s]);}
+
+const bd=$('#board'),cells=[];
+for(let i=0;i<81;i++){const d=document.createElement('div');d.dataset.i=i;bd.appendChild(d);cells.push(d)}
+bd.addEventListener('pointerdown',e=>{const t=e.target.closest('[data-i]');if(!t||!G)return;e.preventDefault();if(paused||dlg.open)return;sel=+t.dataset.i;render()});
+const pad=$('#pad'),padB=[];
+for(let d=1;d<=9;d++){const b=document.createElement('button');b.dataset.d=d;b.innerHTML=d+'<small></small>';pad.appendChild(b);padB.push(b)}
+pad.addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)put(+b.dataset.d)});
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),1800)}
+const canPlay=()=>G&&!G.done&&!paused&&!dlg.open&&!homeOn;
+
+function render(){
+ document.documentElement.dataset.theme=C.theme==='auto'?'':C.theme;
+ const dk=C.theme==='dark'||(C.theme==='auto'&&matchMedia('(prefers-color-scheme:dark)').matches);
+ $('meta[name=theme-color]').content=dk?'#111111':'#2f6fd6';
+ if(homeOn)renderHome();
+ $('#pauseO').classList.toggle('show',paused);
+ $('#tN').classList.toggle('on',noteMode);
+ $('#tN span').textContent='筆記:'+(noteMode?'開':'關');
+ if(!G)return;
+ const sv=sel>=0?G.v[sel]:0,sr=sel/9|0,sc=sel%9;
+ for(let i=0;i<81;i++){
+  const el=cells[i],v=G.v[i],r=i/9|0,c=i%9;let cl='';
+  if(c%3===2&&c<8)cl+=' cr';
+  if(r%3===2&&r<8)cl+=' rb';
+  if(G.p[i])cl+=' gv';
+  if(i===sel)cl+=' sel';
+  else if(C.set.hl&&sel>=0&&(r===sr||c===sc||((r/3|0)===(sr/3|0)&&(c/3|0)===(sc/3|0))))cl+=' pe';
+  if(C.set.same&&sv&&v===sv&&i!==sel)cl+=' sa';
+  if(C.set.err&&v&&v!==G.s[i])cl+=' er';
+  if(G.done===1)cl+=' win';
+  el.className=cl.trim();el.style.setProperty('--d',r+c);
+  if(v)el.textContent=v;
+  else if(G.n[i]){let h='<div class="nt">';for(let d=1;d<=9;d++)h+='<i>'+((G.n[i]>>d&1)?d:'')+'</i>';el.innerHTML=h+'</div>'}
+  else el.textContent='';
+ }
+ for(let d=1;d<=9;d++){let k=0;for(let i=0;i<81;i++)if(G.v[i]===d&&G.s[i]===d)k++;
+  padB[d-1].disabled=k>=9;padB[d-1].querySelector('small').textContent=k>=9?'':9-k}
+ $('#dif').textContent=(G.daily?'每日挑戰 ':'')+LV[G.diff].n;
+ $('#mist').textContent='錯誤 '+G.mist+(C.set.lim?'/'+C.set.lim:'');
+ $('#tm').textContent=fmt(G.t);
+ $('#bPause').textContent=paused?'▶':'⏸';
+}
+function save(){if(G)SV('qy.g',{...G,h:[]})}
+function push(){G.h.push([G.v.slice(),G.n.slice()]);if(G.h.length>100)G.h.shift()}
+function clearPeers(i,n){if(!C.set.auto)return;for(const p of PE[i])if(G.n[p]>>n&1)G.n[p]&=~(1<<n)}
+function after(){
+ save();render();
+ if(G.done)return;
+ if(C.set.lim&&G.mist>=C.set.lim)finish(false);
+ else if(G.v.every((v,i)=>v===G.s[i]))finish(true);
+}
+function put(n){
+ if(!canPlay()||sel<0||G.p[sel]||G.v[sel]===G.s[sel])return;
+ if(noteMode){
+  if(G.v[sel])return;
+  push();G.n[sel]^=1<<n;
+ }else{
+  if(G.v[sel]===n)return;
+  push();G.v[sel]=n;G.n[sel]=0;
+  if(n!==G.s[sel]){G.mist++;if(C.set.vib&&navigator.vibrate)navigator.vibrate(60)}else clearPeers(sel,n);
+ }
+ after();
+}
+function erase(){
+ if(!canPlay()||sel<0||G.p[sel]||G.v[sel]===G.s[sel]||!(G.v[sel]||G.n[sel]))return;
+ push();G.v[sel]=0;G.n[sel]=0;after();
+}
+function undo(){if(!canPlay()||!G.h.length)return;const[a,b]=G.h.pop();G.v=a;G.n=b;after()}
+function cand(k){let m=0;for(const p of PE[k])m|=1<<G.v[p];return 9-pop(m&0x3FE)}
+function hint(){
+ if(!canPlay())return;
+ let i=(sel>=0&&!G.p[sel]&&G.v[sel]!==G.s[sel])?sel:-1;
+ if(i<0){let bc=99;for(let k=0;k<81;k++)if(G.v[k]!==G.s[k]){const c=cand(k);if(c<bc){bc=c;i=k}}}
+ if(i<0)return;
+ push();sel=i;G.v[i]=G.s[i];G.n[i]=0;clearPeers(i,G.s[i]);G.hint++;G.t+=30;
+ toast('已填入提示,時間 +30 秒');after();
+}
+function finish(win){
+ G.done=win?1:2;
+ if(win){
+  S.won++;
+  const b=S.best[G.diff];if(!G.hint&&(!b||G.t<b))S.best[G.diff]=G.t;
+  if(G.daily&&G.daily===today()&&!S.days[G.daily]){
+   S.days[G.daily]=1;const y=new Date();y.setDate(y.getDate()-1);
+   S.streak=S.lastDaily===key(y)?S.streak+1:1;S.lastDaily=G.daily;
+   C.rem.done=G.daily;saveC();pushCfg();
+  }
+ }
+ SV('qy.s',S);save();render();
+ setTimeout(()=>{
+  if(win)dlgShow('<h2>🎉 完成!</h2><p>用時 '+fmt(G.t)+'・錯誤 '+G.mist+'・提示 '+G.hint+'</p>'+(G.daily?'<p>每日挑戰連續 '+streak()+' 天</p>':'')+'<button class="p" data-a="new">新遊戲</button><button data-a="home">回主頁</button>');
+  else dlgShow('<h2>失敗</h2><p>錯誤已達 '+C.set.lim+' 次。</p><button class="p" data-a="restart">重玩本局</button><button data-a="new">新遊戲</button>');
+ },win?1100:250);
+}
+function streak(){const y=new Date();y.setDate(y.getDate()-1);return(S.lastDaily===today()||S.lastDaily===key(y))?S.streak:0}
+function start(diff,dk){
+ if(dlg.open)dlg.close();
+ toast('生成謎題中…');
+ setTimeout(()=>{
+  const R=dk?rng(dseed(dk)):Math.random,{p,s}=gen(diff,R);
+  G={p,s,v:p.slice(),n:Array(81).fill(0),mist:0,hint:0,t:0,diff,daily:dk||'',done:0,h:[]};
+  S.played++;SV('qy.s',S);sel=-1;paused=false;noteMode=false;setHome(false);save();render();
+  $('#toast').classList.remove('show');
+ },30);
+}
+function loadG(){
+ const g=LS('qy.g',null);
+ if(!g||!okSol(g.s)||!LV[g.diff]||g.done)return null;
+ for(const a of[g.p,g.v,g.n])if(!Array.isArray(a)||a.length!==81)return null;
+ for(let i=0;i<81;i++){const p=g.p[i],v=g.v[i],n=g.n[i];
+  if(!Number.isInteger(p)||p<0||p>9||(p&&p!==g.s[i]))return null;
+  if(!Number.isInteger(v)||v<0||v>9||(p&&v!==p))return null;
+  if(!Number.isInteger(n)||n<0||n>1023)return null}
+ g.mist=Math.max(0,g.mist|0);
+ g.hint=Math.max(0,g.hint|0);g.t=Number.isFinite(g.t)&&g.t>=0?Math.floor(g.t):0;
+ g.daily=typeof g.daily==='string'?g.daily:'';g.h=[];
+ return g;
+}
+
+/* 對話框 */
+function dlgShow(h){dlg.innerHTML=h;if(!dlg.open)dlg.showModal()}
+const row=(a,l,v)=>'<button class="r" data-a="'+a+'">'+l+'<span'+(v==='關'?' style="opacity:.4"':'')+'>'+v+'</span></button>',oo=v=>v?'開':'關';
+function setH(){const s=C.set;return '<h2>設定</h2>'+row('theme','主題',{auto:'跟隨系統',light:'淺色',dark:'深色'}[C.theme])+row('tg:err','錯誤標紅',oo(s.err))+row('tg:hl','高亮同行列宮',oo(s.hl))+row('tg:same','高亮相同數字',oo(s.same))+row('tg:auto','自動清除筆記',oo(s.auto))+row('tg:vib','填錯時震動',oo(s.vib))+row('lim','錯誤上限',s.lim?s.lim+' 次':'無限')+row('rem','每日提醒',oo(C.rem.on))+(G?'<button data-a="restart">重玩本局</button>':'')+'<button data-a="wipe">清除所有資料</button><button class="p" data-a="close">完成</button>'}
+function renderHome(){
+ const live=G&&!G.done,st=streak();
+ $('#home').innerHTML='<img src="icon-192.png" alt=""><h1>青魚數獨</h1><p>'+(st?'每日挑戰連續 '+st+' 天':'無廣告・離線也能玩')+'</p>'
+ +(live?'<button class="hb p" data-a="resume">繼續遊戲<small>'+(G.daily?'每日 ':'')+LV[G.diff].n+' '+fmt(G.t)+'</small></button>':'')
+ +'<button class="hb" data-a="daily">每日挑戰<small>'+(S.days[today()]?'✓ 今日已完成':LV[DD[new Date().getDay()]].n)+'</small></button>'
+ +'<button class="hb'+(live?'':' p')+'" data-a="new">新遊戲</button>'
+ +'<div class="row2"><button data-a="stats">📊 統計</button><button data-a="settings">⚙ 設定</button></div>';
+}
+function setHome(v){homeOn=v;$('#home').classList.toggle('show',v);if(v)renderHome()}
+function newH(){
+ const busy=G&&!G.done&&(G.t>0||G.v.some((v,i)=>v!==G.p[i]));
+ return '<h2>新遊戲</h2>'+(busy?'<p>目前進度會被放棄。</p>':'')+Object.keys(LV).map(k=>'<button data-a="start:'+k+'">'+LV[k].n+'</button>').join('')+'<button data-a="close">返回</button>';
+}
+function statsH(){
+ const rate=S.played?Math.round(S.won/S.played*100):0;
+ return '<h2>統計</h2><table><tr><td>總場次</td><td>'+S.played+'</td></tr><tr><td>勝場</td><td>'+S.won+' ('+rate+'%)</td></tr><tr><td>每日挑戰連續</td><td>'+streak()+' 天</td></tr>'+Object.keys(LV).map(k=>'<tr><td>最佳 '+LV[k].n+'</td><td>'+(S.best[k]?fmt(S.best[k]):'—')+'</td></tr>').join('')+'</table><p class="hint">最佳時間不計入使用過提示的對局。</p><button data-a="close">返回</button>';
+}
+function remH(){
+ const m=C.rem.min;
+ return '<h2>每日提醒</h2><p>每天提醒你完成當天的每日挑戰。</p><button class="p" data-a="remt">'+(C.rem.on?'✅ 已開啟(點擊關閉)':'開啟提醒')+'</button><label>提醒時間<input type="time" id="rt" value="'+String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+'"></label><button data-a="rtest">發送測試通知</button><p class="hint">需先「加入主畫面」安裝並允許通知。App 開啟或在背景時最可靠;完全關閉時,是否準時送出取決於瀏覽器(Android Chrome 支援度較高,iPhone 須 iOS 16.4 以上)。</p><button data-a="settings">返回</button>';
+}
+const acts={
+ close(){dlg.close()},
+ new(){dlgShow(newH())},
+ start(k){start(k)},
+ daily(){const k=today();if(G&&G.daily===k&&!G.done){setHome(false);paused=false;dlg.close();render();return}start(DD[new Date().getDay()],k)},
+ stats(){dlgShow(statsH())},
+ rem(){dlgShow(remH())},
+ theme(){C.theme={auto:'light',light:'dark',dark:'auto'}[C.theme];saveC();render();dlgShow(setH())},
+ settings(){dlgShow(setH())},
+ tg(k){C.set[k]=!C.set[k];saveC();render();dlgShow(setH())},
+ lim(){C.set.lim=C.set.lim===3?5:C.set.lim===5?0:3;saveC();dlgShow(setH())},
+ resume(){if(G&&!G.done){paused=false;setHome(false);render()}},
+ home(){dlg.close();setHome(true)},
+ wipe(){dlgShow('<h2>清除所有資料?</h2><p>統計、存檔與設定都會刪除,無法復原。</p><button class="p" data-a="wipe2">確定清除</button><button data-a="settings">取消</button>')},
+ wipe2(){G=null;C.rem.on=false;pushCfg();for(const k of['qy.s','qy.c','qy.g'])try{localStorage.removeItem(k)}catch{}setTimeout(()=>location.reload(),300)},
+ restart(){
+  if(!G)return;
+  Object.assign(G,{v:G.p.slice(),n:Array(81).fill(0),mist:0,hint:0,t:0,done:0,h:[]});
+  sel=-1;paused=false;S.played++;SV('qy.s',S);save();setHome(false);dlg.close();render();
+ },
+ async remt(){
+  if(C.rem.on){C.rem.on=false;saveC();pushCfg();dlgShow(remH());return}
+  if(!('Notification'in window)){toast('此瀏覽器不支援通知');return}
+  let p;try{p=await Notification.requestPermission()}catch{p='denied'}
+  if(p!=='granted'){toast('尚未允許通知權限');return}
+  C.rem.on=true;C.rem.last='';saveC();pushCfg();
+  try{const r=await navigator.serviceWorker.ready;if(r.periodicSync)await r.periodicSync.register('daily',{minInterval:12*3600*1000})}catch{}
+  dlgShow(remH());chk();
+ },
+ async rtest(){
+  if(!('Notification'in window)||Notification.permission!=='granted'){toast('請先開啟提醒並允許通知');return}
+  notif('青魚數獨 🐟','這是測試通知。')
+ }
+};
+dlg.addEventListener('click',e=>{
+ if(e.target===dlg){const r=dlg.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dlg.close();return}
+ const b=e.target.closest('[data-a]');if(!b)return;
+ const[a,x]=b.dataset.a.split(':');if(acts[a])acts[a](x);
+});
+dlg.addEventListener('change',e=>{
+ if(e.target.id==='rt'&&e.target.value){const[h,m]=e.target.value.split(':');C.rem.min=h*60+ +m;C.rem.last='';saveC();pushCfg()}
+});
+dlg.addEventListener('close',render);
+
+/* 提醒 */
+function notif(t,b){
+ const o={body:b,icon:'icon-192.png',badge:'icon-192.png',tag:'daily'};
+ if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification(t,o)).catch(()=>{try{new Notification(t,o)}catch{}});
+ else{try{new Notification(t,o)}catch{}}
+}
+function pushCfg(){
+ if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.active&&r.active.postMessage({cfg:C.rem})).catch(()=>{});
+}
+function chk(){
+ const R=C.rem,k=today(),d=new Date();
+ if(!R.on||!('Notification'in window)||Notification.permission!=='granted')return;
+ if(R.last===k||S.days[k]||d.getHours()*60+d.getMinutes()<R.min)return;
+ R.last=k;saveC();pushCfg();
+ notif('青魚數獨 🐟','今天的每日挑戰在等你,來玩一局吧!');
+}
+
+/* 操作綁定 */
+$('#bHome').onclick=()=>setHome(true);$('#bSet').onclick=()=>dlgShow(setH());
+$('#home').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const[a,x]=b.dataset.a.split(':');if(acts[a])acts[a](x)});
+$('#bPause').onclick=()=>{if(!G||G.done)return;paused=!paused;render()};
+$('#pauseO').onclick=()=>{paused=false;render()};
+$('#tU').onclick=undo;$('#tE').onclick=erase;$('#tH').onclick=hint;
+const toggleNote=()=>{noteMode=!noteMode;render()};
+$('#tN').onclick=toggleNote;
+addEventListener('keydown',e=>{
+ if(!G||dlg.open||homeOn||e.ctrlKey||e.metaKey||e.altKey)return;
+ const k=e.key;
+ if(/^[1-9]$/.test(k))put(+k);
+ else if(k==='Backspace'||k==='Delete')erase();
+ else if(k==='n'||k==='N')toggleNote();
+ else if(k==='h'||k==='H')hint();
+ else if(k==='z'||k==='Z')undo();
+ else if(k.startsWith('Arrow')&&!paused){
+  e.preventDefault();const s=sel<0?40:sel,r=s/9|0,c=s%9;
+  const nr=Math.max(0,Math.min(8,r+(k==='ArrowDown')-(k==='ArrowUp'))),nc=Math.max(0,Math.min(8,c+(k==='ArrowRight')-(k==='ArrowLeft')));
+  sel=nr*9+nc;render();
+ }
+});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){if(G&&!G.done)paused=true;save();render()}else chk();
+});
+addEventListener('pagehide',save);
+try{matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>render())}catch{}
+setInterval(()=>{
+ if(G&&!G.done&&!paused&&!dlg.open&&!homeOn&&!document.hidden){G.t++;$('#tm').textContent=fmt(G.t);if(G.t%5===0)save()}
+},1000);
+setInterval(chk,60000);
+
+/* 啟動 */
+setHome(true);
+G=loadG();
+render();
+chk();
+if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(pushCfg).catch(()=>{}));
+</script>
+</body>
+</html>
