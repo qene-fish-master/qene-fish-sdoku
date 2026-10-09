@@ -1,4 +1,4 @@
-const C='qingyu-sudoku-v3',F=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
+const C='qingyu-sudoku-v6',F=['./','index.html','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C&&k!=='qingyu-cfg').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 // 網路優先、離線時用快取,確保更新後能拿到新版
